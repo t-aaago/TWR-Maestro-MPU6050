@@ -1,0 +1,78 @@
+# =======================================================
+# 1. Compilação ESP-IDF e Firmware
+# =======================================================
+# Pastas de build (geradas automaticamente)
+build/
+**/build/
+
+# Configurações locais do SDK (Mantenha o sdkconfig.defaults!)
+sdkconfig
+sdkconfig.old
+
+# Componentes baixados pelo gerenciador
+managed_components/
+**/managed_components/
+
+# Binários, mapas e arquivos de depuração
+*.hex
+*.bin
+*.elf
+*.map
+*.dump
+
+# =======================================================
+# 2. Python & Análise de Dados
+# =======================================================
+# Bytecode e caches
+__pycache__/
+*.pyc
+
+# Ambientes Virtuais (Vários nomes comuns)
+.venv/
+venv/
+env/
+
+# Checkpoints de Jupyter Notebooks (comum em análise de dados)
+.ipynb_checkpoints
+
+# =======================================================
+# 3. IDE, Editores e Sistema Operacional
+# =======================================================
+# Configurações do VS Code e Workspace
+.vscode/
+*.code-workspace
+
+# Arquivos de sistema (Lixo de Mac/Windows/Linux)
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# =======================================================
+# 4. Dados e Logs (Arquivos gerados na execução)
+# =======================================================
+*.csv
+*.log
+*.txt
+
+# =======================================================
+# 5. Limpeza Específica: Arduino Core (Common Components)
+# =======================================================
+# SEGURANÇA: Bloquear qualquer executável Windows inadvertido
+*.exe
+
+# Remover documentação pesada da biblioteca copiada
+common_components/arduino/docs/
+
+# Remover TODOS os exemplos da biblioteca Arduino (recursivo)
+common_components/arduino/libraries/**/examples/
+
+# Remover testes de performance internos (CoreMark, Fibonacci, etc.)
+common_components/arduino/tests/
+
+# Remover exemplos do componente IDF que vêm junto com o Arduino
+common_components/arduino/idf_component_examples/
+
+# Remover configurações de CI/CD da Espressif (GitHub/GitLab)
+common_components/arduino/.github/
+common_components/arduino/.gitlab/

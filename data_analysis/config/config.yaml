@@ -1,0 +1,23 @@
+mqtt:
+  broker: "131.255.82.115"
+  port: 1883
+  # MUDANÇA PRINCIPAL: Deixe apenas a base do tópico (sem a barra final)
+  # O código vai transformar isso em "argos/twr/#"
+  topic: "argos/twr" 
+  client_id: "uwb-validation-client"
+  keepalive: 60
+  username: ""  
+  password: ""  
+
+data:
+  save_raw: true
+  # O código usará a PASTA deste caminho (data/processed/) para salvar
+  # os arquivos gerados (ex: argos_twr_anchor1_data.csv)
+  data_processed: "data_analysis/processed/"  
+
+uwb:
+  unit: "meters"
+  type: "TWR"
+
+analysis:
+  save_interval_messages: 1
