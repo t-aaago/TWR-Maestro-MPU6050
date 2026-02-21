@@ -78,23 +78,52 @@ Arquivo de definições gerais do projeto de âncora UWB TWR
 // SHORT ADDRESSES AND MAC ADDRESSES DEFINITION PER ANCHOR
 // ============================================================================
 #if ANCHOR_NUMBER == 1
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2540              // Âncora 1 LABPRO (MSB)
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2540              // Âncora 1 PCT (MSB)
     #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:25:40"
 
 #elif ANCHOR_NUMBER == 2
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3734              // Âncora 2 LABPRO (MSB)
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3734              // Âncora 2 PCT (MSB)
     #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:37:34"
 
 #elif ANCHOR_NUMBER == 3
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2850              // Âncora 3 LABPRO (MSB)
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2950              // Âncora 3 PCT (MSB)
     #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:29:50"
 #elif ANCHOR_NUMBER == 4
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3014              // Âncora 4 LABPRO (MSB)
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3014              // Âncora 4 PCT (MSB)
     #define DW1000_ANCHOR_MAC_ADDRESS "D4:8c:49:A1:30:14"
 
 #elif ANCHOR_NUMBER == 5
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x8CD4              // Âncora 5 Tiago (MSB)
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x8CD4              // Âncora 5 PCT (MSB)
     #define DW1000_ANCHOR_MAC_ADDRESS "2C:34:A1:49:8C:D4"
+
+#elif ANCHOR_NUMBER == 6
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x7DB4              // Âncora 6 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "ED:5A:1B:1F:7D:B4"
+
+#elif ANCHOR_NUMBER == 7
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x31B8              // Âncora 7 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:31:B8"
+
+#elif ANCHOR_NUMBER == 8
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x31C8             // Âncora 8 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:31:C8"
+
+#elif ANCHOR_NUMBER == 9
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x325C              // Âncora 9 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:32:5C"
+
+#elif ANCHOR_NUMBER == 10
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3674              // Âncora 10 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:36:74"
+
+#elif ANCHOR_NUMBER == 11
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2904              // Âncora 11 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:29:04"
+
+#elif ANCHOR_NUMBER == 12
+    #define DW1000_ANCHOR_SHORT_ADDRESS 0x297C              // Âncora 12 PCT (MSB)
+    #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:29:7C"
+
 #else
     #error "Invalid ANCHOR_NUMBER."
 #endif

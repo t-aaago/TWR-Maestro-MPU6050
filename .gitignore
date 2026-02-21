@@ -5,6 +5,10 @@
 build/
 **/build/
 
+# Pasta de credenciais
+secrets/
+**/secrets/
+
 # Configurações locais do SDK (Mantenha o sdkconfig.defaults!)
 sdkconfig
 sdkconfig.old
