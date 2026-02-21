@@ -10,6 +10,7 @@
 
 Preferences preferences;
 
+
 // ============================================================================
 // CONTEXT NAMESPACES
 // ============================================================================
@@ -17,12 +18,12 @@ Preferences preferences;
 namespace network_ctx
 {   
     //buffers para conexão wifi
-    char current_ssid[32];
-    char current_pass[64];
+    char current_ssid[32] = {0};
+    char current_pass[64] = {0};
     
     // Buffers de fallback
-    char backup_ssid[32];
-    char backup_pass[64];
+    char backup_ssid[32] = {0};
+    char backup_pass[64] = {0};
     
     //booleano para fallback
     bool b_giveup_new_wifi = false;
@@ -35,13 +36,13 @@ namespace network_ctx
 
 namespace mqtt_ctx{
     // Buffer para tópico de configuração
-    char mqtt_config_topic[64];
+    char mqtt_config_topic[64] = {0};
 
     // Handle cliente MQTT nativo
     esp_mqtt_client_handle_t handle_mqtt_client = NULL;
     
     // Buffers para identificação
-    char mqtt_client_id[32];
+    char mqtt_client_id[32] = {0};
 
     volatile bool b_mqtt_connected = false;
     bool b_mqtt_initialized = false;
@@ -53,6 +54,11 @@ namespace rtos_ctx
     QueueHandle_t uwbQueue;
     TaskHandle_t handle_task_dw1000;
     TaskHandle_t handle_task_network;
+}
+
+namespace ota_ctx
+{
+    bool b_start_update;
 }
 
 // ============================================================================
@@ -88,6 +94,12 @@ void start_mqtt();
 void manage_wifi_connection();
 void manage_mqtt_connection();
 void retrive_and_publish_range();
+
+constexpr uint32_t calculate_hash(const char *);
+
+void enable_ota_routine(JsonDocument& doc);
+void change_network(JsonDocument& doc);
+void restart_device();
 
 
 // ============================================================================
@@ -173,7 +185,10 @@ void manage_wifi_connection()
     }
 
     if (WiFi.status() != WL_CONNECTED)
-    {
+    {   
+        WiFi.disconnect();
+        WiFi.mode(WIFI_STA);
+
         network_ctx::wifi_retries++;
         Serial.printf("[Net] Conectando ao WiFi: %s (Tentativa %d)\n", network_ctx::current_ssid, network_ctx::wifi_retries);
         WiFi.begin(network_ctx::current_ssid, network_ctx::current_pass);
@@ -302,7 +317,7 @@ void task_network_routine(void *parameter)
     
     // --- LOOP DA TASK ---
     for (;;)
-    {
+    {   
         manage_wifi_connection();
 
         manage_mqtt_connection();
@@ -365,6 +380,68 @@ void inactive_device_callback(DW1000Device *device)
     Serial.printf("Device Inativo: %X\n", device->getShortAddress());
 }
 
+// ============================================================================
+// HASHING
+// ============================================================================
+constexpr uint32_t calculate_hash(const char * command_payload){
+    uint32_t hash = 0x811c9dc5;
+    uint32_t hash_multiplier = 0x01000193;
+
+    const char *p_str = command_payload;
+
+    while (*p_str != '\0')
+    {
+        hash = hash ^ *p_str;
+        hash = hash * hash_multiplier;
+        p_str++;
+    }
+
+    return hash;
+    
+}
+
+// ============================================================================
+// AUX CALLBACK
+// ============================================================================
+
+void enable_ota_routine(JsonDocument& doc){
+
+    return;
+}
+
+void change_network(JsonDocument& doc){
+    const char * new_ssid = doc[NVS_WIFI_SSID];
+    const char * new_pass = doc[NVS_WIFI_PASS];
+
+    bool b_valid_network = (new_ssid != nullptr && new_pass != nullptr);
+
+    if (b_valid_network){
+        int same_ssid = strncmp(new_ssid, network_ctx::current_ssid, sizeof(network_ctx::current_ssid));
+        int same_pass = strncmp(new_pass, network_ctx::current_pass, sizeof(network_ctx::current_pass));
+        
+        if ((same_ssid == 0) && (same_pass == 0)){
+            Serial.println("Rede já conectada");
+            return;
+        }
+
+        strlcpy(network_ctx::backup_ssid, network_ctx::current_ssid, sizeof(network_ctx::backup_ssid));
+        strlcpy(network_ctx::backup_pass, network_ctx::current_pass, sizeof(network_ctx::backup_pass));
+
+        strlcpy(network_ctx::current_ssid, new_ssid, sizeof(network_ctx::current_ssid));
+        strlcpy(network_ctx::current_pass, new_pass, sizeof(network_ctx::current_pass));
+
+        network_ctx::wifi_retries = 0;
+        network_ctx::b_trying_new_wifi = true;
+        network_ctx::b_connect_to_new_wifi = true;
+        network_ctx::b_giveup_new_wifi = false;
+        Serial.println("[MQTT] Comando de rede recebido. Testando conexão...");
+    }
+    return;
+}
+void restart_device(){
+    esp_restart();
+    return;
+}
 
 // ============================================================================
 // CALLBACKS MQTT
@@ -372,48 +449,52 @@ void inactive_device_callback(DW1000Device *device)
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
-    
+
     switch ((esp_mqtt_event_id_t)event_id)
     {
-        case MQTT_EVENT_CONNECTED:
+    case MQTT_EVENT_CONNECTED:
         mqtt_ctx::b_mqtt_connected = true;
         Serial.println("MQTT: Conectado");
         esp_mqtt_client_subscribe(mqtt_ctx::handle_mqtt_client, mqtt_ctx::mqtt_config_topic, 0);
         break;
-        
-        case MQTT_EVENT_DISCONNECTED:
+
+    case MQTT_EVENT_DISCONNECTED:
         Serial.println("MQTT: Desconectado");
         mqtt_ctx::b_mqtt_connected = false;
         break;
-        
-        case MQTT_EVENT_DATA:
+
+    case MQTT_EVENT_DATA:
         if (strncmp(event->topic, mqtt_ctx::mqtt_config_topic, event->topic_len) == 0)
         {
-            
             JsonDocument doc;
             DeserializationError error = deserializeJson(doc, event->data, event->data_len);
-            
+
             if (!error)
             {
-                const char *new_ssid = doc[NVS_WIFI_SSID];
-                const char *new_pass = doc[NVS_WIFI_PASS];
-                
-                if (new_ssid != nullptr && new_pass != nullptr)
+                const char *command_payload = doc["command"];
+                if (command_payload == nullptr){
+                    Serial.println("Mensagem inválida");
+                    return;
+                }
+                uint32_t hashed_command = calculate_hash(command_payload);
+
+                switch (hashed_command)
                 {
-                    // 1. Salva as credenciais em uso no buffer de backup
-                    strlcpy(network_ctx::backup_ssid, network_ctx::current_ssid, sizeof(network_ctx::backup_ssid));
-                    strlcpy(network_ctx::backup_pass, network_ctx::current_pass, sizeof(network_ctx::backup_pass));
+                    case calculate_hash("UPDATE_FIRMWARE"):
+                        enable_ota_routine(doc);
+                        break;
                     
-                    // 2. Atualiza as credenciais alvo
-                    strlcpy(network_ctx::current_ssid, new_ssid, sizeof(network_ctx::current_ssid));
-                    strlcpy(network_ctx::current_pass, new_pass, sizeof(network_ctx::current_pass));
-                    
-                    // 3. Prepara a máquina de estados para validação
-                    network_ctx::wifi_retries = 0;
-                    network_ctx::b_trying_new_wifi = true;
-                    network_ctx::b_connect_to_new_wifi = true;
-                    network_ctx::b_giveup_new_wifi = false;
-                    Serial.println("[MQTT] Comando de rede recebido. Testando conexão...");
+                    case calculate_hash("CHANGE_NETWORK"):
+                        change_network(doc);
+                        break;
+
+                    case calculate_hash("RESTART_DEVICE"):
+                        restart_device();
+                        break;
+
+                    default:
+                        Serial.println("Comando desconhecido");
+                        break;
                 }
             }
             else
@@ -422,16 +503,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             }
         }
         break;
-        
-        case MQTT_EVENT_ERROR:
+
+    case MQTT_EVENT_ERROR:
         Serial.println("MQTT: Erro interno");
         break;
-        
-        default:
+
+    default:
         break;
     }
 }
-
 
 // ============================================================================
 // MAIN

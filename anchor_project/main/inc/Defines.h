@@ -41,7 +41,7 @@ Arquivo de definições gerais do projeto de âncora UWB TWR
 // ANCHOR SELECTION - CONFIGURE THE ANCHOR NUMBER HERE
 // ============================================================================
 #define DW1000_BOARD_TYPE ANCHOR  // ANCHOR
-#define ANCHOR_NUMBER 1
+#define ANCHOR_NUMBER 9
 
 // ============================================================================
 // Wifi Configuration
@@ -68,6 +68,20 @@ Arquivo de definições gerais do projeto de âncora UWB TWR
     #define MQTT_TOPIC "uwb/ancora4/data"
 #elif ANCHOR_NUMBER == 5
     #define MQTT_TOPIC "uwb/ancora5/data"
+#elif ANCHOR_NUMBER == 6
+    #define MQTT_TOPIC "uwb/ancora6/data"
+#elif ANCHOR_NUMBER == 7
+    #define MQTT_TOPIC "uwb/ancora7/data"
+#elif ANCHOR_NUMBER == 8
+    #define MQTT_TOPIC "uwb/ancora8/data"
+#elif ANCHOR_NUMBER == 9
+    #define MQTT_TOPIC "uwb/ancora9/data"
+#elif ANCHOR_NUMBER == 10
+    #define MQTT_TOPIC "uwb/ancora10/data"
+#elif ANCHOR_NUMBER == 11
+    #define MQTT_TOPIC "uwb/ancora11/data"
+#elif ANCHOR_NUMBER == 12
+    #define MQTT_TOPIC "uwb/ancora12/data"
 #else
     #error "Invalid ANCHOR_NUMBER."
 #endif
@@ -190,4 +204,5 @@ uint16_t getAntennaDelayForAnchor(int anchorNumber) {
 #define NVS_WIFI_SSID "ssid"
 #define NVS_WIFI_PASS "pass"
 #define NVS_READ_WRITE false
+
 
