@@ -17,6 +17,12 @@ Arquivo de definições gerais do projeto de âncora UWB TWR
 #include "DW1000.h"
 #include "mqtt_client.h"
 
+//#define TLS_CONNECTION
+
+#if defined(TLS_CONNECTION)
+    #include "../secrets/broker_config.h"
+#endif
+
 // ============================================================================
 // SERIAL CONFIGURATION
 // ============================================================================
@@ -46,6 +52,8 @@ Arquivo de definições gerais do projeto de âncora UWB TWR
 // ============================================================================
 // Wifi Configuration
 // ============================================================================
+
+
 #define WIFI_SSID "PCT-GUAMA"           // switch to your network SSID
 #define WIFI_PASSWORD "pct@2016"     // switch to your network password
 
@@ -55,9 +63,17 @@ Arquivo de definições gerais do projeto de âncora UWB TWR
 // ============================================================================
 // MQTT Configuration
 // ============================================================================
-#define MQTT_BROKER "mqtt://test.mosquitto.org:1883"
+#if !defined(TLS_CONNECTION)
+    #define MQTT_BROKER "mqtt://test.mosquitto.org:1883"
+    #define MQTT_PORT 1883
+# else
+    #define MQTT_BROKER SEC_BROKER_URL
+    #define MQTT_BROKER_USER SEC_BROKER_USR
+    #define MQTT_BROKER_PASS SEC_BROKER_PASS
+    #define MQTT_BROKER_CERT SEC_BROKER_CERT
+    #define MQTT_PORT 8883
+#endif
 
-#define MQTT_PORT 1883
 #if ANCHOR_NUMBER == 1
     #define MQTT_TOPIC "uwb/ancora1/data"
 #elif ANCHOR_NUMBER == 2

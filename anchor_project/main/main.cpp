@@ -244,8 +244,17 @@ void start_mqtt()
 {
     esp_mqtt_client_config_t mqtt_cfg = {};
 
-    mqtt_cfg.broker.address.uri = MQTT_BROKER;
     mqtt_cfg.credentials.client_id = mqtt_ctx::mqtt_client_id;
+    
+    #if defined(TLS_CONNECTION)
+        mqtt_cfg.broker.address.uri = MQTT_BROKER;
+        mqtt_cfg.broker.verification.certificate = MQTT_BROKER_CERT;
+        // mqtt_cfg.broker.address.transport = MQTT_TRANSPORT_OVER_SSL;
+        mqtt_cfg.credentials.username = MQTT_BROKER_USER;
+        mqtt_cfg.credentials.authentication.password = MQTT_BROKER_PASS;
+    #else
+        mqtt_cfg.broker.address.uri = MQTT_BROKER;
+    #endif
 
     // Atributo confuso, setar em falso nega a desabilitação da reconexão automática
     // Então está setado para reconectar
@@ -476,6 +485,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                     Serial.println("Mensagem inválida");
                     return;
                 }
+                
                 uint32_t hashed_command = calculate_hash(command_payload);
 
                 switch (hashed_command)
