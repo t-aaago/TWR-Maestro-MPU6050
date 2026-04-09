@@ -3,222 +3,159 @@
  * All rights reserved
  *****************************************************************************/
 
-/*
-Arquivo de definições gerais do projeto de âncora UWB TWR
-*/
-
 #pragma once
 
 #include "Arduino.h"
 #include <SPI.h>
-#include <WiFi.h>
 #include <cmath>
+#include <cstdint>
 #include "DW1000Ranging.h"
 #include "DW1000.h"
-#include "mqtt_client.h"
 
-//#define TLS_CONNECTION
-
-#if defined(TLS_CONNECTION)
-    #include "../secrets/broker_config.h"
-#endif
+// Importação das credenciais isoladas
+#include "../secrets/control_config.h"
+#include "../secrets/data_config.h"
 
 // ============================================================================
-// SERIAL CONFIGURATION
+// VERSIONAMENTO E SERIAL
 // ============================================================================
-#define SERIAL_BAUD 115200
+inline constexpr char CURRENT_VERSION[] = "V0.2.0";
+inline constexpr uint32_t SERIAL_BAUD = 115200U;
 
 // ============================================================================
-// SPI PINS
+// PINOUT SPI E DW1000 (ESP32)
 // ============================================================================
-#define SPI_SCK 18
-#define SPI_MISO 19
-#define SPI_MOSI 23
-#define SPI_SS 5
+inline constexpr uint8_t SPI_SCK  = 18U;
+inline constexpr uint8_t SPI_MISO = 19U;
+inline constexpr uint8_t SPI_MOSI = 23U;
+inline constexpr uint8_t SPI_SS   = 5U;
+
+inline constexpr uint8_t DW1000_PIN_RST = 27U;
+inline constexpr uint8_t DW1000_PIN_IRQ = 34U;
+inline constexpr uint8_t DW1000_PIN_SS  = 4U;
 
 // ============================================================================
-// DW1000 PINS (ESP32 DW1000 twr)
+// SELEÇÃO DE ÂNCORA (Usado para pré-processamento)
 // ============================================================================
-#define DW1000_PIN_RST 27    // Reset pin
-#define DW1000_PIN_IRQ 34    // Interrupt Request pin
-#define DW1000_PIN_SS 4      // Chip Select pin (SPI)
-
-// ============================================================================
-// ANCHOR SELECTION - CONFIGURE THE ANCHOR NUMBER HERE
-// ============================================================================
-#define DW1000_BOARD_TYPE ANCHOR  // ANCHOR
-#define ANCHOR_NUMBER 9
+#define DW1000_BOARD_TYPE ANCHOR
+#define ANCHOR_NUMBER 1
 
 // ============================================================================
-// Wifi Configuration
+// CONFIGURAÇÃO WI-FI (Fallback)
 // ============================================================================
-
-
-#define WIFI_SSID "PCT-GUAMA"           // switch to your network SSID
-#define WIFI_PASSWORD "pct@2016"     // switch to your network password
-
-/* #define WIFI_SSID "Tiago"           // switch to your network SSID
-#define WIFI_PASSWORD "12345678" */
+inline constexpr char WIFI_SSID[] = "DASHING";
+inline constexpr char WIFI_PASSWORD[] = "Oliveir@s1968";
 
 // ============================================================================
-// MQTT Configuration
+// LIMITES E TIMEOUTS
 // ============================================================================
-#if !defined(TLS_CONNECTION)
-    #define MQTT_BROKER "mqtt://test.mosquitto.org:1883"
-    #define MQTT_PORT 1883
-# else
-    #define MQTT_BROKER SEC_BROKER_URL
-    #define MQTT_BROKER_USER SEC_BROKER_USR
-    #define MQTT_BROKER_PASS SEC_BROKER_PASS
-    #define MQTT_BROKER_CERT SEC_BROKER_CERT
-    #define MQTT_PORT 8883
-#endif
-
-#if ANCHOR_NUMBER == 1
-    #define MQTT_TOPIC "uwb/ancora1/data"
-#elif ANCHOR_NUMBER == 2
-    #define MQTT_TOPIC "uwb/ancora2/data"
-#elif ANCHOR_NUMBER == 3
-    #define MQTT_TOPIC "uwb/ancora3/data"
-#elif ANCHOR_NUMBER == 4
-    #define MQTT_TOPIC "uwb/ancora4/data"
-#elif ANCHOR_NUMBER == 5
-    #define MQTT_TOPIC "uwb/ancora5/data"
-#elif ANCHOR_NUMBER == 6
-    #define MQTT_TOPIC "uwb/ancora6/data"
-#elif ANCHOR_NUMBER == 7
-    #define MQTT_TOPIC "uwb/ancora7/data"
-#elif ANCHOR_NUMBER == 8
-    #define MQTT_TOPIC "uwb/ancora8/data"
-#elif ANCHOR_NUMBER == 9
-    #define MQTT_TOPIC "uwb/ancora9/data"
-#elif ANCHOR_NUMBER == 10
-    #define MQTT_TOPIC "uwb/ancora10/data"
-#elif ANCHOR_NUMBER == 11
-    #define MQTT_TOPIC "uwb/ancora11/data"
-#elif ANCHOR_NUMBER == 12
-    #define MQTT_TOPIC "uwb/ancora12/data"
-#else
-    #error "Invalid ANCHOR_NUMBER."
-#endif
-
-#define MAX_BUFFER_SIZE 256
+inline constexpr uint32_t TASK_MIN_DELAY_MS = 1U;
+inline constexpr float MIN_DISTANCE_METERS = 0.0f;
+inline constexpr float MAX_DISTANCE_METERS = 50.0f;
+inline constexpr size_t MAX_BUFFER_SIZE = 256U;
 
 // ============================================================================
-// SHORT ADDRESSES AND MAC ADDRESSES DEFINITION PER ANCHOR
+// ENDEREÇOS E TÓPICOS POR ÂNCORA (Alocação Estática Baseada na Seleção)
 // ============================================================================
 #if ANCHOR_NUMBER == 1
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2540              // Âncora 1 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:25:40"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora1/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x2540U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "C8:2E:18:FB:25:40";
 #elif ANCHOR_NUMBER == 2
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3734              // Âncora 2 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:37:34"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora2/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x3426U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "D4:8C:49:A1:34:26";
 #elif ANCHOR_NUMBER == 3
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2950              // Âncora 3 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:29:50"
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora3/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x3014U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "d4:8c:49:a1:30:14";
 #elif ANCHOR_NUMBER == 4
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3014              // Âncora 4 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8c:49:A1:30:14"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora4/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x7db4U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "e0:5a:1b:1f:7d:b4";
 #elif ANCHOR_NUMBER == 5
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x8CD4              // Âncora 5 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "2C:34:A1:49:8C:D4"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora5/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x31b8U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "d4:8c:49:a1:31:b8";
 #elif ANCHOR_NUMBER == 6
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x7DB4              // Âncora 6 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "ED:5A:1B:1F:7D:B4"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora6/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x31c8U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "d4:8c:49:a1:31:c8";
 #elif ANCHOR_NUMBER == 7
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x31B8              // Âncora 7 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:31:B8"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora7/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x2950U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "c8:2e:18:fb:29:50";
 #elif ANCHOR_NUMBER == 8
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x31C8             // Âncora 8 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:31:C8"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora8/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x2904U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "c8:2e:18:fb:29:04";
 #elif ANCHOR_NUMBER == 9
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x325C              // Âncora 9 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:32:5C"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora9/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x3674U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "d4:8c:49:a1:36:74";
 #elif ANCHOR_NUMBER == 10
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x3674              // Âncora 10 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "D4:8C:49:A1:36:74"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora10/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x3674U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "D4:8C:49:A1:36:74";
 #elif ANCHOR_NUMBER == 11
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x2904              // Âncora 11 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:29:04"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora11/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x2904U;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "C8:2E:18:FB:29:04";
 #elif ANCHOR_NUMBER == 12
-    #define DW1000_ANCHOR_SHORT_ADDRESS 0x297C              // Âncora 12 PCT (MSB)
-    #define DW1000_ANCHOR_MAC_ADDRESS "C8:2E:18:FB:29:7C"
-
+    inline constexpr char MQTT_TOPIC[] = "uwb/ancora12/comandos";
+    inline constexpr uint16_t DW1000_ANCHOR_SHORT_ADDRESS = 0x297CU;
+    inline constexpr char DW1000_ANCHOR_MAC_ADDRESS[] = "C8:2E:18:FB:29:7C";
 #else
     #error "Invalid ANCHOR_NUMBER."
 #endif
 
 // ============================================================================
-// TRANSMISSION MODES AND PARAMETERS
+// PARÂMETROS DE TRANSMISSÃO DW1000
 // ============================================================================
-// NOTE: Any change on this parameters will affect the transmission time of the packets
-// So if you change this parameters you should also change the response times on the DW1000 library 
-// (actual response times are based on experience made with these parameters)
-#define DW1000_TX_RATE DW1000.TRX_RATE_6800KBPS
-//DW1000.TRX_RATE_110KBPS
-//DW1000.TRX_RATE_850KBPS
-//DW1000.TRX_RATE_6800KBPS
-#define DW1000_TX_FREQ DW1000.TX_PULSE_FREQ_16MHZ
-//DW1000.TX_PULSE_FREQ_16MHZ
-//DW1000.TX_PULSE_FREQ_64MHZ
-#define DW1000_TX_PREAMBLE DW1000.TX_PREAMBLE_LEN_64
-//DW1000.TX_PREAMBLE_LEN_64
-//DW1000.TX_PREAMBLE_LEN_128
-//DW1000.TX_PREAMBLE_LEN_256
-//DW1000.TX_PREAMBLE_LEN_512
-//DW1000.TX_PREAMBLE_LEN_1024
-//DW1000.TX_PREAMBLE_LEN_1536
-//DW1000.TX_PREAMBLE_LEN_2048
-//DW1000.TX_PREAMBLE_LEN_4096
-constexpr byte MODE[] = {DW1000_TX_RATE, DW1000_TX_FREQ, DW1000_TX_PREAMBLE};
+// Qualquer alteração nestes parâmetros afetará o tempo de transmissão.
+// Certifique-se de ajustar os tempos de resposta na biblioteca se necessário.
+
+// 1. Taxa de Transmissão (Data Rate)
+inline constexpr uint8_t DW1000_TX_RATE = DW1000.TRX_RATE_6800KBPS;
+// inline constexpr uint8_t DW1000_TX_RATE = DW1000.TRX_RATE_850KBPS;
+// inline constexpr uint8_t DW1000_TX_RATE = DW1000.TRX_RATE_110KBPS;
+
+// 2. Frequência de Pulso (PRF)
+inline constexpr uint8_t DW1000_TX_FREQ = DW1000.TX_PULSE_FREQ_16MHZ;
+// inline constexpr uint8_t DW1000_TX_FREQ = DW1000.TX_PULSE_FREQ_64MHZ;
+
+// 3. Tamanho do Preamble (Preamble Length)
+inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_64;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_128;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_256;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_512;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_1024;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_1536;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_2048;
+// inline constexpr uint8_t DW1000_TX_PREAMBLE = DW1000.TX_PREAMBLE_LEN_4096;
+
+// Array de configuração final passado para o driver UWB
+inline constexpr uint8_t MODE[] = {DW1000_TX_RATE, DW1000_TX_FREQ, DW1000_TX_PREAMBLE};
 
 // ============================================================================
-// TIMEOUTS AND DELAYS
+// CALIBRAÇÃO DE ANTENA
 // ============================================================================
-#define TASK_MIN_DELAY_MS 1        // Minimum delay to prevent watchdog issues
-
-// ============================================================================
-// ANTENNA DELAY PER ANCHOR (TO BE CALIBRATED)
-// ============================================================================
-uint16_t getAntennaDelayForAnchor(int anchorNumber) {
+// A palavra 'inline' é crucial aqui para evitar erros de Linker (ODR Violation)
+inline uint16_t getAntennaDelayForAnchor(int anchorNumber) {
     switch (anchorNumber) {
-        case 1:
-            return 16660;
-        case 2:
-            return 16600;
-        case 3:
-            return 16566;
-        case 4:
-            return 16656;
-        case 5:
-            return 16530;
-        default:
-            return 16530; // Default value
+        case 1: return 16660U;
+        case 2: return 16600U;
+        case 3: return 16566U;
+        case 4: return 16656U;
+        case 5: return 16530U;
+        default: return 16530U;
     }
 }
 
-//=============================================================================
-// lIMITS FOR DISTANCE CALCULATION
 // ============================================================================
-#define MIN_DISTANCE_METERS 0.0f   // Minimum valid distance in meters
-#define MAX_DISTANCE_METERS 50.0f // Maximum valid distance in meters
-
-//=============================================================================
-// NVS
+// ESP-IDF NVS KEYS
 // ============================================================================
-#define NVS_WIFI_NAMESPACE "wifi_cred"
-#define NVS_WIFI_SSID "ssid"
-#define NVS_WIFI_PASS "pass"
-#define NVS_READ_WRITE false
-
-
+inline constexpr char NVS_WIFI_NAMESPACE[] = "wifi_cred";
+inline constexpr char NVS_WIFI_SSID[] = "ssid";
+inline constexpr char NVS_WIFI_PASS[] = "pass";
+inline constexpr bool NVS_READ_WRITE = false;
