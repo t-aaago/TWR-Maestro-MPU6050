@@ -19,7 +19,7 @@
 // ============================================================================
 // VERSIONAMENTO E SERIAL
 // ============================================================================
-inline constexpr char CURRENT_VERSION[] = "V0.2.0";
+inline constexpr char CURRENT_VERSION[] = "V0.2.1";
 inline constexpr uint32_t SERIAL_BAUD = 115200U;
 
 // ============================================================================
@@ -38,7 +38,10 @@ inline constexpr uint8_t DW1000_PIN_SS  = 4U;
 // SELEÇÃO DE ÂNCORA (Usado para pré-processamento)
 // ============================================================================
 #define DW1000_BOARD_TYPE ANCHOR
-#define ANCHOR_NUMBER 1
+
+#ifndef ANCHOR_NUMBER
+    #define ANCHOR_NUMBER 1 // Valor padrão de fallback
+#endif
 
 // ============================================================================
 // CONFIGURAÇÃO WI-FI (Fallback)

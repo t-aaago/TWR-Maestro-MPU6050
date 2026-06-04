@@ -14,6 +14,8 @@
 #include "udp_data_transport.h"
 #include "mqtt_control_transport.h"
 #include "esp_timer.h" 
+#include "sys/time.h"
+#include "DriverSNTP.h"
 
 // ============================================================================
 // CONTEXT NAMESPACES (Reduzidos e Focados)
@@ -45,6 +47,7 @@ void enable_ota_routine(const JsonDocument& doc);
 void change_network(const JsonDocument& doc);
 void restart_device();
 void update_firmware();
+void process_handoff_command(const JsonDocument& doc); // <--- NOVA LINHA
 
 // ============================================================================
 // HASHING COMPILE-TIME
@@ -158,7 +161,10 @@ void new_range_callback(DW1000Device *device) {
         data.eta = 0.0f;
     }
 
-    data.timestamp_us = esp_timer_get_time();
+    struct timeval tv;
+    gettimeofday(&tv, nullptr);
+    data.timestamp_us = (int64_t)tv.tv_sec * 1000000LL + (int64_t)tv.tv_usec;
+
 
     // Sobrescreve o pacote antigo se a rede estiver ocupada (Non-blocking)
     xQueueOverwrite(rtos_ctx::uwbQueue, &data);
@@ -178,6 +184,12 @@ void inactive_device_callback(DW1000Device *device) {
 void on_network_state_changed(net_state_t new_state) {
     // Apenas monitoramento. O orquestrador gere as reconexões internamente.
     Serial.printf("[SYSTEM] Novo estado de rede: %d\n", new_state);
+
+    if(new_state == NET_STATE_FULLY_READY){
+        // WIFI e Transporte pronto para sincronizar horário
+        initialize_sntp();
+        Serial.println("[SNTP] Tempo Sincronizado");
+    }
 }
 
 void process_control_command(const uint8_t* payload, size_t len) {
@@ -215,6 +227,12 @@ void process_control_command(const uint8_t* payload, size_t len) {
         case calculate_hash("RESTART_DEVICE"):
             restart_device();
             break;
+
+        // --- NOVA CONDIÇÃO ---
+        case calculate_hash("HANDOFF"):
+            process_handoff_command(doc);
+            break;
+        // ---------------------
 
         default:
             Serial.println("[MQTT] Comando desconhecido.");
@@ -264,6 +282,25 @@ void update_firmware() {
     Serial.printf("[OTA] Iniciando rotina de atualizacao para a versao: %s\n", ota_ctx::ota_new_version);
     // TODO: Implementar lógica de esp_https_ota
     ota_ctx::b_start_update = false;
+}
+
+void process_handoff_command(const JsonDocument& doc) {
+    // 1. Verifica diretamente no documento se "anchors" é um array e tem tamanho >= 4
+    if (!doc["anchors"].is<JsonArray>() || doc["anchors"].size() < 4) {
+        Serial.println("[MQTT] Erro: Comando HANDOFF invalido (matriz ausente ou incompleta).");
+        return;
+    }
+
+    // 2. Extração direta do JsonDocument (Conversão segura para uint16_t)
+    uint16_t a1 = doc["anchors"][0].as<uint16_t>();
+    uint16_t a2 = doc["anchors"][1].as<uint16_t>();
+    uint16_t a3 = doc["anchors"][2].as<uint16_t>();
+    uint16_t a4 = doc["anchors"][3].as<uint16_t>();
+
+    // 3. Injeção atómica no Core 1 (Biblioteca DW1000)
+    DW1000Ranging.setPendingHandoff(a1, a2, a3, a4);
+
+    Serial.printf("🔄 [HANDOFF] Ordem roteada para UWB. Proximas: %04X, %04X, %04X, %04X\n", a1, a2, a3, a4);
 }
 
 
