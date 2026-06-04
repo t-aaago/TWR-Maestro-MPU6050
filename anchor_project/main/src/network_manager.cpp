@@ -210,18 +210,29 @@ bool network_manager_change_wifi(const char* new_ssid, const char* new_pass) {
     if (!new_ssid || !new_pass) return false;
 
     ESP_LOGI(TAG, "Comando de troca de Wi-Fi. Aplicando nova config...");
-    
+
     strncpy(current_ssid, new_ssid, sizeof(current_ssid) - 1);
     strncpy(current_pass, new_pass, sizeof(current_pass) - 1);
+
+    // CORREÇÃO BUG #13: Persiste as novas credenciais na NVS antes de reconectar.
+    // Sem isso, um reboot após a troca volta para as credenciais do Defines.h.
+    nvs_handle_t nvs_handle;
+    if (nvs_open(NVS_WIFI_NAMESPACE, NVS_READWRITE, &nvs_handle) == ESP_OK) {
+        nvs_set_str(nvs_handle, NVS_WIFI_SSID, current_ssid);
+        nvs_set_str(nvs_handle, NVS_WIFI_PASS, current_pass);
+        nvs_commit(nvs_handle);
+        nvs_close(nvs_handle);
+        ESP_LOGI(TAG, "Novas credenciais Wi-Fi persistidas na NVS.");
+    } else {
+        ESP_LOGE(TAG, "Falha ao abrir NVS para escrita. Credenciais NAO persistidas.");
+    }
 
     wifi_config_t wifi_config = {};
     strncpy((char*)wifi_config.sta.ssid, current_ssid, sizeof(wifi_config.sta.ssid) - 1);
     strncpy((char*)wifi_config.sta.password, current_pass, sizeof(wifi_config.sta.password) - 1);
 
     esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-    
-    // O disconnect disparará o evento no handler, que usará a nova config para reconectar
-    esp_wifi_disconnect(); 
+    esp_wifi_disconnect();
 
-    return true; 
+    return true;
 }

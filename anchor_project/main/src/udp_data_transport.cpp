@@ -16,28 +16,6 @@ namespace {
 // IMPLEMENTAÇÃO DOS CONTRATOS
 // ============================================================================
 
-static bool udp_connect_impl(void) {
-    if (current_socket != INVALID_SOCKET) {
-        return true; // Evita reinicialização se já estiver aberto
-    }
-
-    // Alocação de socket LwIP nativo para datagramas (UDP)
-    current_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-    if (current_socket < 0) {
-        ESP_LOGE(TAG, "Falha na criacao do socket UDP. errno: %d", errno);
-        current_socket = INVALID_SOCKET;
-        return false;
-    }
-
-    // TARGET_IP e TARGET_PORT são resolvidos em tempo de compilação a partir do Defines.h
-    dest_addr.sin_addr.s_addr = inet_addr(TARGET_IP);
-    dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(TARGET_PORT);
-
-    ESP_LOGI(TAG, "Socket UDP inicializado. Target: %s:%u", TARGET_IP, TARGET_PORT);
-    return true;
-}
-
 static void udp_disconnect_impl(void) {
     if (current_socket != INVALID_SOCKET) {
         // Interrompe operações de leitura/escrita ativas antes de fechar
@@ -47,6 +25,30 @@ static void udp_disconnect_impl(void) {
         ESP_LOGI(TAG, "Socket UDP encerrado (Memory Leak prevenido).");
     }
 }
+
+static bool udp_connect_impl(void) {
+    // CORREÇÃO BUG #10: Se o socket existe mas o WiFi caiu e reconectou,
+    // o socket anterior pode estar morto. Força recriação sempre que
+    // connect() é chamado pelo network_manager após reconexão.
+    if (current_socket != INVALID_SOCKET) {
+        udp_disconnect_impl();
+    }
+
+    current_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+    if (current_socket < 0) {
+        ESP_LOGE(TAG, "Falha na criacao do socket UDP. errno: %d", errno);
+        current_socket = INVALID_SOCKET;
+        return false;
+    }
+
+    dest_addr.sin_addr.s_addr = inet_addr(TARGET_IP);
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(TARGET_PORT);
+
+    ESP_LOGI(TAG, "Socket UDP inicializado. Target: %s:%u", TARGET_IP, TARGET_PORT);
+    return true;
+}
+
 
 static bool udp_send_impl(const uint8_t* payload, size_t len) {
     // Validação estrita de ponteiros e estado
